@@ -30,7 +30,7 @@ namespace Clipboard_Exporter_WinUI3
     
     public sealed partial class MainWindow : Window
     {
-        private string filePath;
+        private List<string> clipboardHistory = new List<string>();
         private bool isMonitoringEnabled = false;
 
         WindowsSystemDispatcherQueueHelper m_wsdqHelper; // See below for implementation.
@@ -46,9 +46,6 @@ namespace Clipboard_Exporter_WinUI3
             exportToFileButton.Click += ExportToFile_Click;
             clearContentButton.Click += ClearContent_Click;
             TrySetSystemBackdrop();
-
-            // 设置文件路径为用户文档目录下的 clipboard.txt
-            filePath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "clipboard.txt");
         }
 
         class WindowsSystemDispatcherQueueHelper
@@ -100,30 +97,23 @@ namespace Clipboard_Exporter_WinUI3
                     string clipboardText = clipboardData.GetTextAsync().GetResults(); // 同步获取文本内容
                     if (!string.IsNullOrEmpty(clipboardText))
                     {
-                        // 将剪贴板内容保存在文件中
-                        AppendTextToFile(filePath, clipboardText + "\n");
+                        // 将剪贴板内容保存在内存中的历史记录中
+                        clipboardHistory.Add(clipboardText);
+                        UpdateClipboardHistoryText();
                     }
                 }
             }
         }
 
-        private async void AppendTextToFile(string filePath, string textToAppend)
+        private void UpdateClipboardHistoryText()
         {
-            // 检查文件是否存在，如果不存在则创建
-            StorageFile file = await ApplicationData.Current.LocalFolder.CreateFileAsync("clipboard.txt", CreationCollisionOption.OpenIfExists);
-
-            // 向文件追加文本内容
-            await FileIO.AppendTextAsync(file, textToAppend);
-        }
-
-        private async Task RefreshTextBoxAsync()
-        {
-            StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
-            if (file != null)
+            // 更新显示当前剪贴板历史记录的文本框
+            StringBuilder sb = new StringBuilder();
+            foreach (string text in clipboardHistory)
             {
-                string fileContent = await FileIO.ReadTextAsync(file);
-                textBoxContent.Text = fileContent;
+                sb.AppendLine(text);
             }
+            clipboardHistoryTextBlock.Text = sb.ToString();
         }
 
         private void ToggleSwitch_Toggled(object sender, RoutedEventArgs e)
@@ -133,47 +123,39 @@ namespace Clipboard_Exporter_WinUI3
 
         private async void CopyContent_Click(object sender, RoutedEventArgs e)
         {
-            // 从文件中获取最新的剪贴板内容并复制到剪贴板
-            string latestClipboardText = await ReadTextFromFile(filePath);
-            if (!string.IsNullOrEmpty(latestClipboardText))
+            // 复制整个历史记录到剪贴板
+            if (clipboardHistory.Count > 0)
             {
+                // 复制所有剪贴板历史记录到剪贴板
                 DataPackage dataPackage = new DataPackage();
-                dataPackage.SetText(latestClipboardText);
+                dataPackage.SetText(string.Join("\n", clipboardHistory));
                 Clipboard.SetContent(dataPackage);
             }
         }
 
         private async void ExportToFile_Click(object sender, RoutedEventArgs e)
         {
-            // 导出剪贴板内容到用户文档目录下的文件
-            StorageFile file = await KnownFolders.DocumentsLibrary.CreateFileAsync($"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}.txt");
-            string clipboardText = await ReadTextFromFile(filePath);
+            // 使用文件选择器保存历史记录到纯文本文件
+            var picker = new FileSavePicker
+            {
+                SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
+                SuggestedFileName = $"{DateTime.Now:yyyy-MM-dd-HH-mm-ss-fff}.txt"
+            };
+            picker.FileTypeChoices.Add("Text", new List<string> { ".txt" });
 
-            if (!string.IsNullOrEmpty(clipboardText))
+            StorageFile file = await picker.PickSaveFileAsync();
+            if (file != null)
             {
-                await FileIO.WriteTextAsync(file, clipboardText);
-            }
-        }
-
-        private async Task<string> ReadTextFromFile(string filePath)
-        {
-            try
-            {
-                // 从文件中读取文本内容
-                StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
-                return await FileIO.ReadTextAsync(file);
-            }
-            catch (Exception)
-            {
-                // 处理文件不存在或读取错误的情况
-                return string.Empty;
+                // 将剪贴板历史记录写入选定的文件
+                await FileIO.WriteTextAsync(file, string.Join("\n", clipboardHistory));
             }
         }
 
         private async void ClearContent_Click(object sender, RoutedEventArgs e)
         {
-            // 清空文件中的剪贴板内容
-            await FileIO.WriteTextAsync(await StorageFile.GetFileFromPathAsync(filePath), string.Empty);
+            // 清空内存中的历史记录
+            clipboardHistory.Clear();
+            UpdateClipboardHistoryText();
         }
 
         bool TrySetSystemBackdrop()
