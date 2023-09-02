@@ -44,15 +44,14 @@ namespace Clipboard_Exporter_WinUI3
 
         private void InitializeClipboardExporter()
         {
-            DataTransferManager dataTransferManager = DataTransferManager.GetForCurrentView();
-            dataTransferManager.DataPackageChanged += Clipboard_ContentChanged;
+            Clipboard.ContentChanged += Clipboard_ContentChanged;
         }
 
-        private async void Clipboard_ContentChanged(DataTransferManager sender, DataPackageChangedEventArgs e)
+        private async void Clipboard_ContentChanged(object sender, object e)
         {
             if (isMonitoringEnabled)
             {
-                DataPackageView clipboardData = await Clipboard.GetContentAsync();
+                DataPackageView clipboardData = Clipboard.GetContent();
                 if (clipboardData.Contains(StandardDataFormats.Text))
                 {
                     string clipboardText = await clipboardData.GetTextAsync();

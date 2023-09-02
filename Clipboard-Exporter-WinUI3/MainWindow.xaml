@@ -18,9 +18,9 @@
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10">
             <ToggleSwitch Name="toggleSwitch" Header="启用剪贴板监视" VerticalAlignment="Center" Margin="5"/>
-            <Button Content="复制内容" Click="CopyContent_Click" Margin="5"/>
-            <Button Content="导出到文件" Click="ExportToFile_Click" Margin="5"/>
-            <Button Content="清空内容" Click="ClearContent_Click" Margin="5"/>
+            <Button Name="copyContentButton" Content="复制内容" Click="CopyContent_Click" Margin="5"/>
+            <Button Name="exportToFileButton" Content="导出到文件" Click="ExportToFile_Click" Margin="5"/>
+            <Button Name="clearContentButton" Content="清空内容" Click="ClearContent_Click" Margin="5"/>
         </StackPanel>
     </Grid>
 </Window>
