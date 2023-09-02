@@ -35,34 +35,48 @@ namespace Clipboard_Exporter_WinUI3
         public MainWindow()
         {
             this.InitializeComponent();
-            
+            InitializeClipboardExporter();
             toggleSwitch.Toggled += ToggleSwitch_Toggled;
-            Clipboard.ContentChanged += Clipboard_ContentChanged;
+            copyContentButton.Click += CopyContent_Click;
+            exportToFileButton.Click += ExportToFile_Click;
+            clearContentButton.Click += ClearContent_Click;
         }
 
-        private async void Clipboard_ContentChanged(object sender, object e)
+        private void InitializeClipboardExporter()
+        {
+            DataTransferManager dataTransferManager = DataTransferManager.GetForCurrentView();
+            dataTransferManager.DataPackageChanged += Clipboard_ContentChanged;
+        }
+
+        private async void Clipboard_ContentChanged(DataTransferManager sender, DataPackageChangedEventArgs e)
         {
             if (isMonitoringEnabled)
             {
-                DataPackageView clipboardData = Clipboard.GetContent();
+                DataPackageView clipboardData = await Clipboard.GetContentAsync();
                 if (clipboardData.Contains(StandardDataFormats.Text))
                 {
                     string clipboardText = await clipboardData.GetTextAsync();
                     if (!string.IsNullOrEmpty(clipboardText))
                     {
-                        await FileIO.AppendTextAsync(await Windows.Storage.StorageFile.GetFileFromPathAsync(filePath), clipboardText + "\n");
-                        await RefreshTextBox();
+                        await AppendTextToFileAsync(clipboardText + "\n");
+                        await RefreshTextBoxAsync();
                     }
                 }
             }
         }
 
-        private async Task RefreshTextBox()
+        private async Task AppendTextToFileAsync(string textToAppend)
         {
-            Windows.Storage.StorageFile file = await Windows.Storage.StorageFile.GetFileFromPathAsync(filePath);
+            StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
+            await FileIO.AppendTextAsync(file, textToAppend);
+        }
+
+        private async Task RefreshTextBoxAsync()
+        {
+            StorageFile file = await StorageFile.GetFileFromPathAsync(filePath);
             if (file != null)
             {
-                string fileContent = await Windows.Storage.FileIO.ReadTextAsync(file);
+                string fileContent = await FileIO.ReadTextAsync(file);
                 textBoxContent.Text = fileContent;
             }
         }
@@ -72,7 +86,7 @@ namespace Clipboard_Exporter_WinUI3
             isMonitoringEnabled = toggleSwitch.IsOn;
         }
 
-        private void CopyContent_Click(object sender, RoutedEventArgs e)
+        private async void CopyContent_Click(object sender, RoutedEventArgs e)
         {
             DataPackage dataPackage = new DataPackage();
             dataPackage.SetText(textBoxContent.Text);
@@ -98,7 +112,7 @@ namespace Clipboard_Exporter_WinUI3
         private async void ClearContent_Click(object sender, RoutedEventArgs e)
         {
             textBoxContent.Text = string.Empty;
-            await FileIO.WriteTextAsync(await Windows.Storage.StorageFile.GetFileFromPathAsync(filePath), string.Empty);
+            await FileIO.WriteTextAsync(await StorageFile.GetFileFromPathAsync(filePath), string.Empty);
         }
     }
 }
