@@ -10,7 +10,7 @@
   <Identity
     Name="55da7a5d-12cf-4b15-96c3-ad3f67be291d"
     Publisher="CN=Tira-test"
-    Version="1.0.4.0" />
+    Version="1.0.8.0" />
 
   <mp:PhoneIdentity PhoneProductId="55da7a5d-12cf-4b15-96c3-ad3f67be291d" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
@@ -47,6 +47,5 @@
 
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
-    <Capability Name="clipboard"/>
   </Capabilities>
 </Package>
